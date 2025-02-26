@@ -1,0 +1,53 @@
+p {
+    font-size: 14px;
+}
+
+.login_api p {
+    border-top: 1px solid #eee;
+}
+
+.login_api img:hover {
+    cursor: pointer;
+}
+
+.login_api ul {
+    display: flex;
+    justify-content: center;
+    padding-left: 0;
+}
+
+.login_api li {
+    padding: 10px;
+}
+
+.login_api li img{
+    width: 50px;
+}
+
+@media (max-width: 767px){
+    .login_api img {width: 100%}
+}
+
+@media (max-width: 575px){
+    .container form,
+    .login_api {
+        padding-left: 20%;
+        padding-right: 20%;
+    }
+}
+
+@media (min-width: 576px) and (max-width: 991px){
+    .container form,
+    .login_api {
+        padding-left: 25%;
+        padding-right: 25%;
+    }
+}
+
+@media (min-width: 992px) {
+    .container form,
+    .login_api {
+        padding-left: 30%;
+        padding-right: 30%;
+    }
+}

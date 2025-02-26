@@ -1,0 +1,51 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    position: relative;
+    font-family: "Open Sans", "Noto Sans KR", serif;
+    font-weight: 400;
+}
+
+a {
+    color: #333;
+    text-decoration: none;
+}
+
+ul, ol, li {
+    list-style: none;
+}
+
+h2 {
+    border-bottom: 3px solid #999;
+}
+
+.nav-link {
+    color: #777;
+}
+.nav-link:hover {
+    color: #198754;
+}
+
+.pagination li:hover {
+    cursor: pointer;
+}
+
+.header {
+    background-color: #fff;
+    border-bottom: 1px solid #eee;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+footer p {
+    margin-bottom: 3px;
+    font-size: 12px;
+}
+
+.error {
+    color: #dd1626;
+}

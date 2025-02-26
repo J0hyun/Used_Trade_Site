@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+
+<!-- 사용자 스크립트 추가 -->
+<th:block layout:fragment="script">
+
+    <script th:inline="javascript">
+
+
+
+        $(document).ready(function(){
+            var errorMessage = [[${errorMessage}]];
+            if(errorMessage != null){
+                alert(errorMessage);
+            }
+        });
+
+        // 첨부파일(이미지) 처리 시작
+
+        $(document).ready(function () {
+            const MAX_FILES = 12; // 업로드 가능한 최대 파일 개수
+            let selectedFiles = []; // 선택된 파일을 저장할 배열
+
+            $("#itemImgFile").on("change", function () {
+                const fileInput = $(this)[0];
+                const files = fileInput.files;
+
+                if (files.length + selectedFiles.length > MAX_FILES) {
+                    alert("최대 12개의 이미지 파일만 업로드 가능합니다.");
+                    fileInput.value = ""; // input 초기화
+                }
+                    selectedFiles = selectedFiles.concat(Array.from(files));
+                    updateFileInput(); // files 속성 업데이트
+                    updateFileCount();
+                    displayImagePreviews();
+
+            });
+
+            function updateFileInput() {
+                const fileInput = $("#itemImgFile")[0];
+                const dataTransfer = new DataTransfer();
+
+                selectedFiles.forEach(file => {
+                    dataTransfer.items.add(file);
+                });
+
+                fileInput.files = dataTransfer.files; // input[type="file"]의 files 속성 갱신
+            }
+
+            function updateFileCount() {
+                const fileCount = selectedFiles.length;
+                const fileCountLabel = $("#imageFileCountLabel");
+                fileCountLabel.text(`상품이미지(${fileCount}/12)`);
+            }
+
+            function displayImagePreviews() {
+                const previewContainer = $("#imagePreviewContainer");
+                previewContainer.empty();
+
+                selectedFiles.forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const previewDiv = $("<div>")
+                            .css({
+                                "position": "relative",
+                                "display": "inline-block",
+                                "margin": "5px",
+                            });
+
+                        const img = $("<img>")
+                            .attr("src", e.target.result)
+                            .css({
+                                "width": "200px",
+                                "height": "200px",
+                                "object-fit": "cover",
+                            });
+
+                        const closeButton = $("<button>")
+                            .text("x")
+                            .css({
+                                "position": "absolute",
+                                "top": "5px",
+                                "right": "5px",
+                                "background": "red",
+                                "color": "white",
+                                "border": "none",
+                                "border-radius": "50%",
+                                "width": "25px",
+                                "height": "25px",
+                                "cursor": "pointer",
+                                "display": "flex",
+                                "align-items": "center",
+                                "justify-content": "center",
+                                "font-size": "16px",
+                                "line-height": "1", // 텍스트 높이 조정
+                                "padding": "0", // 버튼 내 여백 제거
+                            })
+                            .on("click", function () {
+                                selectedFiles.splice(index, 1); // 배열에서 파일 제거
+                                updateFileInput(); // files 속성 업데이트
+                                displayImagePreviews();
+                                updateFileCount();
+                            });
+
+                        if (index === 0) {
+                            const repLabel = $("<div>")
+                                .text("[대표이미지]")
+                                .css({
+                                    "position": "absolute",
+                                    "top": "5px",
+                                    "left": "5px",
+                                    "background": "rgba(0, 0, 0, 0.6)",
+                                    "color": "white",
+                                    "padding": "2px 5px",
+                                    "border-radius": "5px",
+                                    "font-size": "12px",
+                                });
+                            previewDiv.append(repLabel);
+                        }
+
+                        previewDiv.append(img).append(closeButton);
+                        previewContainer.append(previewDiv);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        });
+
+
+
+
+
+
+
+
+
+
+
+
+        // 첨부파일(이미지) 처리 끝
+
+
+        $(function() {
+            // 카테고리 선택
+            $('.maincategory li').click(function() {
+                $('.maincategory li').removeClass('choice');
+                $(this).addClass('choice');
+                $('.subcategory2').empty().append('<li>소분류 선택</li>');
+                $('.text-success b').empty().append('<span>' + $(this).text() + '</span>');
+                $('input[name="categoryId"]').val('');
+
+                let id = $(this).attr('data-id');
+                let targetUrl = "/member/item/subCategories?parentId=" + id;
+
+                $.ajax({
+                    url: targetUrl,
+                    method: "get",
+                    dataType : "json",
+                    async: false,
+                    success: function(result) {
+                        resArr = result;
+                        $('.subcategory1').empty();
+                        result.forEach(function(cate) {
+                            $('.subcategory1').append(`<li data-id="${cate.id}">${cate.name}</li>`);
+                        });
+
+                        // 중분류 클릭시 소분류
+                        $(document).on('click', '.subcategory1 li', function() {
+                            $('.subcategory1 li').removeClass('choice');
+                            $(this).addClass('choice');
+                            $('.text-success b span:not(:first-of-type)').remove();
+                            $('.text-success b').append('<span>  > ' + $(this).text() + '</span>');
+                            $('input[name="categoryId"]').val('');
+
+                            let idx = $(this).index();
+                            $('.subcategory2').empty();
+                            resArr[idx].children.forEach(function(cate) {
+                                $('.subcategory2').append(`<li data-id="${cate.id}">${cate.name}</li>`);
+                            });
+
+                            // 소분류 클릭
+                            $(document).on('click', '.subcategory2 li', function() {
+                                $('.subcategory2 li').removeClass('choice');
+                                $(this).addClass('choice');
+                                $('.text-success b span:nth-of-type(3)').remove();
+                                $('.text-success b').append('<span>  > ' + $(this).text() + '</span>');
+                                $('input[name="categoryId"]').val($(this).attr('data-id'));
+                            });
+                        });
+                    }
+                });
+            });
+
+            // 수정시 소분류/중분류 선택가능하도록
+            if(!location.pathname.includes('new')){
+                // 이벤트 위임 사용: 중분류 클릭 이벤트
+                $(document).on('click', '.subcategory1 li', function () {
+                    $('.subcategory1 li').removeClass('choice');
+                    $(this).addClass('choice');
+                    $('.text-success b span:not(:first-of-type)').remove();
+                    $('.text-success b').append('<span>  > ' + $(this).text() + '</span>');
+                    $('input[name="categoryId"]').val('');
+
+                    let idx = $(this).index();
+                    $('.subcategory2').empty();
+                    resArr[idx].children.forEach(function (cate) {
+                        $('.subcategory2').append(`<li data-id="${cate.id}">${cate.name}</li>`);
+                    });
+                });
+
+                // 이벤트 위임 사용: 소분류 클릭 이벤트
+                $(document).on('click', '.subcategory2 li', function () {
+                    $('.subcategory2 li').removeClass('choice');
+                    $(this).addClass('choice');
+                    $('.text-success b span:nth-of-type(3)').remove();
+                    $('.text-success b').append('<span>  > ' + $(this).text() + '</span>');
+                    $('input[name="categoryId"]').val($(this).attr('data-id'));
+                });
+            }
+
+            // 스크립트에서 categoryId를 가져와 사용
+            let categoryId = document.getElementById('categoryId').value;
+            console.log("카테고리 ID 값:", categoryId); // 카테고리 ID 출력
+            let parentCategoryId = document.getElementById('parentCategoryId').value;
+            console.log("부모카테고리 ID 값:", parentCategoryId); // 카테고리 ID 출력
+            let grandparentCategoryId = document.getElementById('grandparentCategoryId').value;
+            console.log("조부모카테고리 ID 값:", grandparentCategoryId); // 카테고리 ID 출력
+
+            // categoryHierarchy 값 가져오기
+            let categoryHierarchy = document.getElementById('categoryHierarchy').value;
+            console.log("카테고리:", categoryHierarchy); // 카테고리 출력
+            let categories = categoryHierarchy.split(' > ');
+
+            function setDefaultCategory() {
+                let defaultCategoryId = grandparentCategoryId;  // '남성의류' 대분류 ID
+                let defaultSubcategoryId = parentCategoryId;  // '상의' 중분류 ID
+                let defaultSubsubCategoryId = categoryId;  // '반팔 티셔츠' 소분류 ID
+
+                // 대분류 (남성의류) 선택
+                $('.maincategory li').each(function() {
+                    if ($(this).attr('data-id') == defaultCategoryId) {
+                        $(this).addClass('choice');
+                        $('.text-success b').html('<span>' + $('.maincategory li.choice').text() + '</span>');
+                        $('input[name="categoryId"]').val(defaultCategoryId);
+
+                        // 중분류 로딩
+                        let targetUrl = "/member/item/subCategories?parentId=" + defaultCategoryId;
+                        $.ajax({
+                            url: targetUrl,
+                            method: "get",
+                            dataType: "json",
+                            success: function(result) {
+                                resArr = result;
+                                $('.subcategory1').empty();
+                                result.forEach(function(cate) {
+                                    $('.subcategory1').append(`<li data-id="${cate.id}">${cate.name}</li>`);
+                                });
+
+                                // 중분류 (상의) 선택
+                                $('.subcategory1 li').each(function() {
+                                    if ($(this).attr('data-id') == defaultSubcategoryId) {
+                                        $(this).addClass('choice');
+                                        $('.text-success b').append('<span>  > ' + $('.subcategory1 li.choice').text() + '</span>');
+
+                                        // 소분류 로딩
+                                        let idx = $(this).index();
+                                        $('.subcategory2').empty();
+                                        resArr[idx].children.forEach(function(cate) {
+                                            $('.subcategory2').append(`<li data-id="${cate.id}">${cate.name}</li>`);
+                                        });
+
+                                        // 소분류 (반팔 티셔츠) 선택
+                                        $('.subcategory2 li').each(function() {
+                                            if ($(this).attr('data-id') == defaultSubsubCategoryId) {
+                                                $(this).addClass('choice');
+                                                $('.text-success b').append('<span>  > ' + $('.subcategory2 li.choice').text() + '</span>');
+                                                $('input[name="categoryId"]').val(defaultSubsubCategoryId);
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+
+            // 페이지 로드 시 기본 카테고리 설정 함수 호출
+            setDefaultCategory();
+        });
+
+
+        $(document).ready(function(){
+            // 페이지 로드 시 기본 상태 설정
+            updateShippingPriceDiv();  // 배송비 입력란 상태 설정
+            updateTradeLocationDiv();  // 직거래 위치 입력란 상태 설정
+
+            // "배송비 별도"를 선택했을 때 배송비 입력란을 보이게 하고, "배송비 포함"을 선택했을 때 숨깁니다.
+            $('#shippingSeparate').on('change', function() {
+                updateShippingPriceDiv();
+            });
+
+            $('#shippingFree').on('change', function() {
+                updateShippingPriceDiv();
+            });
+
+            // "직거래 가능"을 선택했을 때 위치 입력란을 보이게 하고, "직거래 불가"를 선택했을 때 숨깁니다.
+            $('#tradePossible').on('change', function() {
+                updateTradeLocationDiv();
+            });
+
+            $('#tradeImpossible').on('change', function() {
+                updateTradeLocationDiv();
+            });
+
+            // 배송비 입력란을 표시하거나 숨기는 함수
+            function updateShippingPriceDiv() {
+                if ($('#shippingSeparate').is(':checked')) {
+                    $('#shippingPriceDiv').show(); // "배송비 별도" 선택 시 보이기
+                } else {
+                    $('#shippingPriceDiv').hide(); // "배송비 포함" 선택 시 숨기기
+                }
+            }
+
+            // 직거래 위치 입력란을 표시하거나 숨기는 함수
+            function updateTradeLocationDiv() {
+                if ($('#tradePossible').is(':checked')) {
+                    $('#tradeLocationDiv').show(); // "직거래 가능" 선택 시 보이기
+                } else {
+                    $('#tradeLocationDiv').hide(); // "직거래 불가" 선택 시 숨기기
+                }
+            }
+        });
+
+
+    </script>
+
+</th:block>
+
+<!-- 사용자 CSS 추가 -->
+<th:block layout:fragment="css">
+    <style>
+        p {
+            margin-bottom: 0;
+            font-size: 14px;
+        }
+        .category {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .category label{
+            width: 100%;
+        }
+        .category ul {
+            width: 33.3%;
+            border: 1px solid #dee2e6;
+            padding: 5px 10px;
+            margin-bottom: 0;
+        }
+        .category ul li {
+            padding-left: 5px;
+            cursor: pointer;
+        }
+        .category .choice {
+            background-color: #eee;
+        }
+        .maincategory {
+            height: 100px;
+            overflow: auto;
+        }
+    </style>
+</th:block>
+
+<div class="container mt-5" layout:fragment="content">
+
+    <form role="form" method="post" enctype="multipart/form-data" th:object="${itemFormDto}">
+
+        <h2 class="pb-2 mb-4">
+            <span th:text="${itemFormDto.itemNm != null and itemFormDto.itemNm != '' ? '상품 수정' : '상품 등록'}"></span>
+        </h2>
+
+        <input type="hidden" th:field="*{id}">
+
+
+
+        <div class="form-group mb-3">
+            <label>상품명</label>
+            <input type="text" th:field="*{itemNm}" class="form-control" placeholder="상품명을 입력해주세요">
+            <p th:if="${#fields.hasErrors('itemNm')}" th:errors="*{itemNm}" class="error">Incorrect data</p>
+        </div>
+
+        <!--카테고리 시작-->
+        <div class="category mb-3">
+            <label>카테고리</label>
+            <ul class="maincategory">
+                <li th:each="pCate , status: ${parentCategories}" th:data-id="${pCate.id}">[[${pCate.name}]]</li>
+            </ul>
+            <ul class="subcategory1">
+                <li>중분류 선택</li>
+            </ul>
+            <ul class="subcategory2">
+                <li>소분류 선택</li>
+            </ul>
+            <p class="text-success">선택한 카테고리 : <b></b></p>
+            <input type="hidden" th:field="*{categoryId}">
+            <input type="hidden" th:field="*{parentCategoryId}" />
+            <input type="hidden" th:field="*{grandparentCategoryId}" />
+            <input type="hidden" th:field="*{categoryHierarchy}" />
+            <p th:if="${#fields.hasErrors('categoryId')}" th:errors="*{categoryId}" class="error">Incorrect data</p>
+        </div>
+        <!--카테고리 끝-->
+
+        <div class="form-group mb-3">
+            <label>상품 상태</label>
+            <div th:field="*{itemStatus}">
+                <div class="form-check">
+                    <input type="radio" id="new" name="itemStatus" value="NEW" class="form-check-input"
+                           th:checked="${itemFormDto.itemStatus == T(com.mbc.constant.ItemStatus).NEW}">
+                    <label for="new" class="form-check-label">새 상품 (미사용)</label>
+                </div>
+                <div class="form-check">
+                    <input type="radio" id="unused" name="itemStatus" value="UNUSED" class="form-check-input"
+                           th:checked="${itemFormDto.itemStatus == T(com.mbc.constant.ItemStatus).UNUSED}">
+                    <label for="unused" class="form-check-label">사용감 없음</label>
+                </div>
+                <div class="form-check">
+                    <input type="radio" id="lightUse" name="itemStatus" value="LIGHT_USE" class="form-check-input"
+                           th:checked="${itemFormDto.itemStatus == T(com.mbc.constant.ItemStatus).LIGHT_USE}">
+                    <label for="lightUse" class="form-check-label">사용감 적음</label>
+                </div>
+                <div class="form-check">
+                    <input type="radio" id="heavyUse" name="itemStatus" value="HEAVY_USE" class="form-check-input"
+                           th:checked="${itemFormDto.itemStatus == T(com.mbc.constant.ItemStatus).HEAVY_USE}">
+                    <label for="heavyUse" class="form-check-label">사용감 많음</label>
+                </div>
+                <div class="form-check">
+                    <input type="radio" id="damaged" name="itemStatus" value="DAMAGED" class="form-check-input"
+                           th:checked="${itemFormDto.itemStatus == T(com.mbc.constant.ItemStatus).DAMAGED}">
+                    <label for="damaged" class="form-check-label">고장/파손 상품</label>
+                </div>
+            </div>
+            <p th:if="${#fields.hasErrors('itemStatus')}" th:errors="*{itemStatus}" class="error">Incorrect data</p>
+        </div>
+
+        <!-- 이미지 파일 입력 부분 -->
+        <div class="form-group mb-3">
+            <div id="imageFileCountLabel" class="mb-2">상품이미지(0/12)</div>
+            <div class="custom-file">
+                <input type="file" class="custom-file-input" id="itemImgFile" name="itemImgFile" multiple accept="image/jpeg, image/png, image/jpg">
+                <label class="custom-file-label" for="itemImgFile">이미지 파일을 선택하세요</label>
+            </div>
+        </div>
+
+        <!-- 미리보기 이미지들이 추가될 div -->
+        <div id="imagePreviewContainer" class="d-flex flex-wrap"></div>
+
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+        <div class="form-group mb-3">
+            <label>상품 상세 내용</label>
+            <textarea class="form-control" aria-label="With textarea" th:field="*{itemDetail}"></textarea>
+            <p th:if="${#fields.hasErrors('itemDetail')}" th:errors="*{itemDetail}" class="error">Incorrect data</p>
+        </div>
+
+        <div class="form-group mb-3">
+            <label>가격</label>
+            <input type="number" th:field="*{price}" class="form-control" placeholder="상품의 가격을 입력해주세요">
+            <p th:if="${#fields.hasErrors('price')}" th:errors="*{price}" class="error">Incorrect data</p>
+        </div>
+
+        <div class="form-group mb-3">
+            <!-- 배송비 선택 -->
+            <label>배송비</label>
+            <div class="form-check">
+                <input type="radio" id="shippingFree" class="form-check-input" name="shipping" value="free" th:checked="${itemFormDto.shipping == 'free' || itemFormDto.shipping == null}">
+                <label for="shippingFree">배송비 포함 (무료배송)</label>
+            </div>
+
+            <div class="form-check">
+                <input type="radio" id="shippingSeparate" class="form-check-input" name="shipping" value="separate" th:checked="${itemFormDto.shipping == 'separate'}">
+                <label for="shippingSeparate">배송비 별도</label>
+                <!-- 배송비 별도일 경우 가격 입력 -->
+                <div id="shippingPriceDiv" >
+                    <label for="shippingPrice">배송비:</label>
+                    <input type="number" id="shippingPrice" class="form-control w-50" name="shippingPrice" th:value="${itemFormDto.shippingPrice}">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group mb-3">
+            <!-- 직거래 가능 여부 -->
+            <label>직거래</label>
+            <div class="form-check">
+                <input type="radio" id="tradePossible" class="form-check-input" name="tradeAvailable" value="possible" th:checked="${itemFormDto.tradeAvailable == 'possible' || itemFormDto.tradeAvailable == null}">
+                <label for="tradePossible">가능</label>
+                <!-- 직거래 가능일 경우 위치 정보 입력 -->
+                <div id="tradeLocationDiv">
+                    <label for="tradeLocation">직거래 위치:</label>
+                    <input type="text" id="tradeLocation" class="form-control" name="tradeLocation" th:value="${itemFormDto.tradeLocation}">
+                    <div class="text-danger" th:if="${#fields.hasErrors('tradeLocation')}" th:errors="*{tradeLocation}"></div>
+                </div>
+            </div>
+
+            <div class="form-check">
+                <input type="radio" id="tradeImpossible" class="form-check-input" name="tradeAvailable" value="impossible" th:checked="${itemFormDto.tradeAvailable == 'impossible'}">
+                <label for="tradeImpossible">불가</label>
+            </div>
+        </div>
+
+        <div class="form-group mb-3">
+            <label>재고 수량</label>
+            <input type="number" th:field="*{stockNumber}" class="form-control" placeholder="상품의 재고수량을 입력해주세요">
+            <p th:if="${#fields.hasErrors('stockNumber')}" th:errors="*{stockNumber}" class="error">Incorrect data</p>
+        </div>
+
+        <div th:if="${#strings.isEmpty(itemFormDto.id)}" class="text-center mt-5">
+            <button th:formaction="@{/member/item/new}" type="submit" class="btn btn-success">등록하기</button>
+        </div>
+        <div th:unless="${#strings.isEmpty(itemFormDto.id)}" class="text-center mt-3">
+            <button th:formaction="@{'/member/item/' + ${itemFormDto.id} }" type="submit" class="btn btn-success">수정</button>
+        </div>
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+    </form>
+
+</div>
+
+</html>

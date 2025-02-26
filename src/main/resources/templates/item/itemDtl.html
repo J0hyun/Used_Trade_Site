@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+
+<head>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+</head>
+
+<!-- 사용자 스크립트 추가 -->
+<th:block layout:fragment="script">
+
+    <script th:inline="javascript">
+        $(document).ready(function(){
+
+            calculateToalPrice();
+
+            $("#count").change( function(){
+                calculateToalPrice();
+            });
+        });
+
+        function calculateToalPrice(){
+            var count = $("#count").val();
+            var price = $("#price").val();
+            var totalPrice = price*count;
+            totalPrice = totalPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            $("#totalPrice").html(totalPrice + '원');
+        }
+
+        // function order(){
+        //     var token = $("meta[name='_csrf']").attr("content");
+        //     var header = $("meta[name='_csrf_header']").attr("content");
+        //
+        //     var url = "/order";
+        //     var paramData = {
+        //         itemId : $("#itemId").val(),
+        //         count : $("#count").val()
+        //     };
+        //
+        //     var param = JSON.stringify(paramData);
+        //
+        //     $.ajax({
+        //         url      : url,
+        //         type     : "POST",
+        //         contentType : "application/json",
+        //         data     : param,
+        //         beforeSend : function(xhr){
+        //             /* 데이터를 전송하기 전에 헤더에 csrf값을 설정 */
+        //             xhr.setRequestHeader(header, token);
+        //         },
+        //         dataType : "json",
+        //         cache   : false,
+        //         success  : function(result, status){
+        //             alert("주문 페이지로 이동합니다.");
+        //             location.href='/order';
+        //         },
+        //         error : function(jqXHR, status, error){
+        //
+        //             if(jqXHR.status === 500){
+        //                 alert('로그인 후 이용해주세요');
+        //                 location.href='/login';
+        //             } else{
+        //                 alert(jqXHR.responseText);
+        //             }
+        //
+        //         }
+        //     });
+        // }
+
+        function order(){
+            var token = $("meta[name='_csrf']").attr("content");
+            var header = $("meta[name='_csrf_header']").attr("content");
+
+            var url = "/cart";
+            var paramData = {
+                itemId : $("#itemId").val(),
+                count : $("#count").val()
+            };
+
+            var param = JSON.stringify(paramData);
+
+            $.ajax({
+                url      : url,
+                type     : "POST",
+                contentType : "application/json",
+                data     : param,
+                beforeSend : function(xhr){
+                    /* 데이터를 전송하기 전에 헤더에 csrf값을 설정 */
+                    xhr.setRequestHeader(header, token);
+                },
+                dataType : "json",
+                cache   : false,
+                success  : function(result, status){
+                    alert("주문/결제 페이지로 이동합니다.");
+                    location.href='/cart';
+                },
+                error : function(jqXHR, status, error){
+                    if(jqXHR.status === 500){
+                        alert('로그인 후 이용해주세요');
+                        location.href='/login';
+                    } else{
+                        alert(jqXHR.responseText);
+                    }
+
+                }
+            });
+        }
+
+        function confirmDelete() {
+            return confirm("삭제하시겠습니까?");
+        }
+
+        function alertAndRedirect() {
+            alert('로그인 후 이용해주세요');
+            location.href = '/login'; // 로그인 페이지로 이동
+        }
+
+    </script>
+</th:block>
+
+<!-- 사용자 CSS 추가 -->
+<th:block layout:fragment="css">
+    <style>
+        .container img {
+            width: 100%;
+        }
+        .form-group a {
+            text-decoration: underline;
+        }
+    </style>
+</th:block>
+
+<div class="container mt-5" layout:fragment="content">
+
+    <input type="hidden" id="itemId" th:value="${item.id}">
+
+    <p><i class="fa-solid fa-house text-success"></i> 홈 >
+        <!-- 카테고리 정보 표시 -->
+        <span th:text="${item.categoryHierarchy}">카테고리 경로</span>  <!-- 카테고리 경로 출력 -->
+    </p>
+
+
+
+    <div class="row">
+        <div class="col-md-6">
+            <img th:src="${item.itemImgDtoList[0].imgUrl}" class = "rounded" th:alt="${item.itemNm}">
+        </div>
+        <div class="col-md-6">
+            <span th:if="${item.itemSellStatus.name() == 'SELL'}" class="badge bg-success">판매중</span>
+            <span th:unless="${item.itemSellStatus.name() == 'SELL'}" class="badge bg-danger">품절</span>
+
+            <h3 th:text="${item.itemNm}"></h3>
+            <h4 class="text-danger">
+                <input type="hidden" th:value="${item.price}" id="price" name="price">
+                <span th:text="${#numbers.formatInteger(item.price, 3,'COMMA')}"></span>원
+            </h4>
+
+            <div class="input-group w-50">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">수량</span>
+                </div>
+                <input type="number" name="count" id="count" class="form-control" value="1" min="1">
+            </div>
+
+            <div class="mt-5">
+                <h5 class="text-end">총 주문 금액</h5>
+                <h3 name="totalPrice" id="totalPrice" class="text-end"></h3>
+            </div>
+
+            <div class="form-group">
+                <label>상품 상태&nbsp;&nbsp;&nbsp; : </label>
+                <span th:text="${item.itemStatusDescription}"></span> <!-- 한글로 변환된 itemStatus 값 표시 -->
+            </div>
+            <div class="form-group">
+                <label>배 송 비&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : </label>
+                <span th:if="${item.shipping == 'free'}">무료배송</span>
+                <span th:if="${item.shipping == 'separate'}"> <span th:text="${item.shippingPrice}"></span> 원</span>
+            </div>
+            <div class="form-group" th:if="${item.tradeAvailable == 'possible'}">
+                <label>직거래 위치 : </label>
+                <span th:text="${item.tradeLocation}"></span>
+            </div>
+            <div class="form-group">
+                <label>판 매 자&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : </label>
+                <i class="fa-solid fa-shop text-success"></i>
+                <a th:href="@{/store/{memberId}(memberId=${memberId})}" th:text="${item.userName}" class="text-success"></a>
+            </div>
+
+            <div th:if="${item.itemSellStatus.name() == 'SELL'}" class="text-end mt-3">
+                <!-- 채팅방으로 이동하는 버튼 -->
+                <!-- 로그인한 사용자만 '채팅하기' 버튼 보이기 -->
+                <a sec:authorize="isAuthenticated()" th:href="@{/chat/item/{itemId}/{memberId}(itemId=${item.id}, memberId=${memberId})}"
+                   class="btn btn-outline-success btn-lg">채팅하기</a>
+
+                <!-- 비로그인 사용자만 '로그인하기' 버튼 보이기 -->
+                <a sec:authorize="!isAuthenticated()" href="#" class="btn btn-outline-success btn-lg" onclick="alertAndRedirect()">채팅하기</a>
+
+                <!-- 바로구매 버튼은 관리자가 아니면 숨기기 -->
+                <button type="button" class="btn btn-success btn-lg"
+                        th:if="${not isDeletable}" onclick="order()">바로 구매</button>
+            </div>
+            <div th:unless="${item.itemSellStatus.name() == 'SELL'}" class="text-end mt-3">
+                <button type="button" class="btn btn-danger btn-lg">품절</button>
+            </div>
+
+            <div class="text-end mt-3">
+                <!-- 삭제 폼 추가 -->
+                <form action="/item/delete" method="post" style="display:inline;" onsubmit="return confirmDelete();" th:if="${isDeletable}">
+                    <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
+                    <input type="hidden" name="itemId" th:value="${item.id}">
+                    <button type="submit" class="btn btn-danger btn-lg">삭제</button>
+                </form>
+
+                <!-- 수정하기 버튼 -->
+                <a th:href="'/member/item/'+${item.id}" class="btn btn-primary btn-lg" th:if="${isDeletable}">수정</a>
+            </div>
+<!--            <script>-->
+<!--                function confirmDelete() {-->
+<!--                    return confirm("삭제하시겠습니까?");-->
+<!--                }-->
+<!--            </script>-->
+
+        </div>
+    </div>
+
+    <hr class="my-5">
+
+    <h5>상품 상세 설명</h5>
+    <p th:text="${item.itemDetail}"></p>
+
+
+
+    <h5 class="mt-5">상품 이미지</h5>
+    <div class="row">
+        <div th:each="itemImg : ${item.itemImgDtoList}" class="text-center col-md-6">
+            <img th:if="${not #strings.isEmpty(itemImg.imgUrl)}" th:src="${itemImg.imgUrl}" class="rounded my-2">
+        </div>
+    </div>
+
+
+</div>
+
+</html>

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+
+<head>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+</head>
+
+<!-- 사용자 스크립트 추가 -->
+<th:block layout:fragment="script">
+    <!-- 결제창 연동 CDN -->
+    <script src="https://cdn.iamport.kr/v1/iamport.js"></script>
+    <script src="/js/payment.js"></script>
+
+    <!-- 다음주소 -->
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+
+    <script th:inline="javascript">
+        $(document).ready(function(){
+            $("input[name=cartChkBox]").change( function(){
+                getOrderTotalPrice();
+            });
+
+            $('.payment').click(function(){
+                // 배송 정보 입력 요청
+                if($('#name').val() == ''){
+                    alert('배송 정보 - 이름을 입력해주세요.');
+                }else if($('#phone').val() == ''){
+                    alert('배송 정보 - 연락처를 입력해주세요.');
+                }else if($('#address').val() == ''){
+                    alert('배송 정보 - 주소를 입력해주세요.');
+                }else if($('#address_detail').val() == ''){
+                    alert('배송 정보 - 상세주소를 입력해주세요.');
+                }else {
+                    handleOrderAndPayment();
+                }
+            });
+        });
+
+        function getOrderTotalPrice(){
+            var orderTotalPrice = 0;
+            var deleveryPrice = 0;
+            $("input[name=cartChkBox]:checked").each(function() {
+                var cartItemId = $(this).val();
+                var price = $("#price_" + cartItemId).attr("data-price");
+                var count = $("#count_" + cartItemId).val();
+                orderTotalPrice += price * count;
+            });
+            $("#orderTotalPrice").attr('data-total', orderTotalPrice);
+            totalPrice = orderTotalPrice + deleveryPrice;
+            // '원' 표시
+            orderTotalPrice = orderTotalPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            totalPrice = totalPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            $("#orderTotalPrice").html(orderTotalPrice+'원');
+            $("#deleveryPrice").html(deleveryPrice+'원');
+            $("#totalPrice").html(totalPrice+'원');
+
+        }
+
+        function changeCount(obj){
+            var count = obj.value;
+            var cartItemId = obj.id.split('_')[1];
+            var price = $("#price_" + cartItemId).data("price");
+            var totalPrice = count * price;
+            totalPrice = totalPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            $("#totalPrice_" + cartItemId).html(totalPrice+"원");
+            getOrderTotalPrice();
+            updateCartItemCount(cartItemId, count);
+        }
+
+        function checkAll(){
+            if($("#checkall").prop("checked")){
+                $("input[name=cartChkBox]").prop("checked",true);
+            }else{
+                $("input[name=cartChkBox]").prop("checked",false);
+            }
+            getOrderTotalPrice();
+        }
+
+        function updateCartItemCount(cartItemId, count){
+            var token = $("meta[name='_csrf']").attr("content");
+            var header = $("meta[name='_csrf_header']").attr("content");
+
+            var url = "/cartItem/" + cartItemId+"?count=" + count;
+
+            $.ajax({
+                url      : url,
+                type     : "PATCH",
+                beforeSend : function(xhr){
+                    /* 데이터를 전송하기 전에 헤더에 csrf값을 설정 */
+                    xhr.setRequestHeader(header, token);
+                },
+                dataType : "json",
+                cache   : false,
+                success  : function(result, status){
+                    console.log("cartItem count update success");
+                },
+                error : function(jqXHR, status, error){
+
+                    if(jqXHR.status == '401'){
+                        alert('로그인 후 이용해주세요');
+                        location.href='/members/login';
+                    } else{
+                        alert(jqXHR.responseJSON.message);
+                    }
+
+                }
+            });
+        }
+
+        function deleteCartItem(obj){
+            var cartItemId = obj.dataset.id;
+            var token = $("meta[name='_csrf']").attr("content");
+            var header = $("meta[name='_csrf_header']").attr("content");
+
+            var url = "/cartItem/" + cartItemId;
+
+            $.ajax({
+                url      : url,
+                type     : "DELETE",
+                beforeSend : function(xhr){
+                    /* 데이터를 전송하기 전에 헤더에 csrf값을 설정 */
+                    xhr.setRequestHeader(header, token);
+                },
+                dataType : "json",
+                cache   : false,
+                success  : function(result, status){
+                    location.href='/cart';
+                },
+                error : function(jqXHR, status, error){
+
+                    if(jqXHR.status == '401'){
+                        alert('로그인 후 이용해주세요');
+                        location.href='/members/login';
+                    } else{
+                        alert(jqXHR.responseJSON.message);
+                    }
+
+                }
+            });
+        }
+
+        // function orders(){
+        //     var token = $("meta[name='_csrf']").attr("content");
+        //     var header = $("meta[name='_csrf_header']").attr("content");
+        //
+        //     var url = "/cart/orders";
+        //
+        //     var dataList = new Array();
+        //     var paramData = new Object();
+        //
+        //     $("input[name=cartChkBox]:checked").each(function() {
+        //         var cartItemId = $(this).val();
+        //         var data = new Object();
+        //         data["cartItemId"] = cartItemId;
+        //         dataList.push(data);
+        //     });
+        //
+        //     paramData['cartOrderDtoList'] = dataList;
+        //
+        //     var param = JSON.stringify(paramData);
+        //
+        //     $.ajax({
+        //         url      : url,
+        //         type     : "POST",
+        //         contentType : "application/json",
+        //         data     : param,
+        //         beforeSend : function(xhr){
+        //             /* 데이터를 전송하기 전에 헤더에 csrf값을 설정 */
+        //             xhr.setRequestHeader(header, token);
+        //         },
+        //         dataType : "json",
+        //         cache   : false,
+        //         success  : function(result, status){
+        //             alert("주문이 완료 되었습니다.");
+        //             location.href='/orders';
+        //         },
+        //         error : function(jqXHR, status, error){
+        //
+        //             if(jqXHR.status == '401'){
+        //                 alert('로그인 후 이용해주세요');
+        //                 location.href='/members/login';
+        //             } else{
+        //                 alert(jqXHR.responseJSON.message);
+        //             }
+        //
+        //         }
+        //     });
+        // }
+
+        /* 다음 주소 연동 */
+        function execution_daum_address(){
+            console.log("동작");
+            new daum.Postcode({
+                oncomplete: function(data) {
+                    // 팝업에서 검색결과 항목을 클릭했을때 실행할 코드를 작성하는 부분입니다.
+
+                    // 각 주소의 노출 규칙에 따라 주소를 조합한다.
+                    // 내려오는 변수가 값이 없는 경우엔 공백('')값을 가지므로, 이를 참고하여 분기 한다.
+                    var address = ''; // 주소 변수
+                    var extraAddr = ''; // 참고항목 변수
+
+                    //사용자가 선택한 주소 타입에 따라 해당 주소 값을 가져온다.
+                    if (data.userSelectedType === 'R') { // 사용자가 도로명 주소를 선택했을 경우
+                        address = data.roadAddress;
+                    } else { // 사용자가 지번 주소를 선택했을 경우(J)
+                        address = data.jibunAddress;
+                    }
+
+                    // 사용자가 선택한 주소가 도로명 타입일때 참고항목을 조합한다.
+                    if(data.userSelectedType === 'R'){
+                        // 법정동명이 있을 경우 추가한다. (법정리는 제외)
+                        // 법정동의 경우 마지막 문자가 "동/로/가"로 끝난다.
+                        if(data.bname !== '' && /[동|로|가]$/g.test(data.bname)){
+                            extraAddr += data.bname;
+                        }
+                        // 건물명이 있고, 공동주택일 경우 추가한다.
+                        if(data.buildingName !== '' && data.apartment === 'Y'){
+                            extraAddr += (extraAddr !== '' ? ', ' + data.buildingName : data.buildingName);
+                        }
+                        // 표시할 참고항목이 있을 경우, 괄호까지 추가한 최종 문자열을 만든다.
+                        if(extraAddr !== ''){
+                            extraAddr = ' (' + extraAddr + ')';
+                        }
+                        // 추가해야할 코드
+                        // 주소변수 문자열과 참고항목 문자열 합치기
+                        address += extraAddr;
+
+                    } else {
+                        address += ' ';
+                    }
+
+                    // 제거해야할 코드
+                    // 우편번호와 주소 정보를 해당 필드에 넣는다.
+                    // $(".address1_input").val(data.zonecode);
+                    $("#address").val(address);
+                    // 커서를 상세주소 필드로 이동한다.
+                    $("#address_detail").attr("readonly", false);
+                    $("#address_detail").focus();
+
+
+                }
+            }).open();
+
+        }
+    </script>
+</th:block>
+
+<div class="container mt-5" layout:fragment="content">
+
+    <h2 class="pb-2 mb-4">주문 결제</h2>
+    <div class="row justify-content-between">
+        <div class="col-md-7 mb-3">
+            <h4>주문 내역</h4>
+            <input type="checkbox" id="checkall" onclick="checkAll()"> 전체선택
+            <table class="table align-middle mt-2">
+                <thead>
+                <tr class="text-center">
+                    <td style="width: 10%;">선택</td>
+                    <td style="width: 40%">상품정보</td>
+                    <td style="width: 15%">수 량</td>
+                    <td style="width: 25%;">상품금액</td>
+                    <td style="width: 10%;">삭제</td>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="cartItem : ${cartItems}">
+                    <td class="text-center">
+                        <input type="checkbox" name="cartChkBox" th:value="${cartItem.cartItemId}">
+                    </td>
+                    <td class="row">
+                        <div class="col-md-4">
+                            <img th:src="${cartItem.imgUrl}" class = "rounded align-middle" th:alt="${cartItem.itemNm}" width="100%">
+                        </div>
+                        <div class="col-md-8">
+                            <p th:text="${cartItem.itemNm}" class="fs-4" id="itemNm"></p>
+                            <span th:id="'price_' + ${cartItem.cartItemId}"
+                                  th:data-price="${cartItem.price}"
+                                  th:text="${#numbers.formatInteger(cartItem.price, 3,'COMMA')} + '원'" class="me-2">
+                    </span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="input-group align-items-center">
+                            <input type="number" name="count" th:id="'count_' + ${cartItem.cartItemId}"
+                                   th:value="${cartItem.count}" min="1"
+                                   onchange="changeCount(this)" class="form-control">
+                        </div>
+                    </td>
+                    <td class="text-center">
+                <span th:id="'totalPrice_' + ${cartItem.cartItemId}"
+                      name="totalPrice" th:text="${#numbers.formatInteger(cartItem.price * cartItem.count, 3,'COMMA')} + '원'">
+                </span>
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn-close" aria-label="Close" th:data-id="${cartItem.cartItemId}" onclick="deleteCartItem(this)">
+                        </button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h4 class="mt-5">배송 정보</h4>
+            <form role="form">
+                <div class="form-group mb-3">
+                    <label th:for="name">이름</label>
+                    <input type="name" name="name" id="name" class="form-control" placeholder="이름">
+                </div>
+                <div class="form-group mb-3">
+                    <label th:for="phone">연락처</label>
+                    <input type="text" name="phone" id="phone" class="form-control" placeholder="휴대폰번호">
+                </div>
+                <div class="form-group mb-3">
+                    <label th:for="address">주소</label>
+                    <input type="text" name="address" id="address" class="form-control" placeholder="주소(클릭해서 입력해 주세요~)"
+                        onclick="execution_daum_address()">
+                </div>
+                <div class="form-group mb-3">
+                    <label th:for="address_detail">상세주소</label>
+                    <input type="text" name="address_detail" id="address_detail" class="form-control" placeholder="상세주소" readonly>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-4 bg-success-subtle me-3">
+            <h4 class="mt-3">결제 금액</h4>
+            <table class="table table-borderless p-3">
+                <tr>
+                    <td>상품 금액</td>
+                    <td class="text-end"><span id="orderTotalPrice" class="text-bolder">0원</span></td>
+                </tr>
+                <tr>
+                    <td>배 송 비</td>
+                    <td class="text-end"><span id="deleveryPrice" class="text-bolder">0원</span></td>
+                </tr>
+                <tr class="border-top">
+                    <td>총 결제금액</td>
+                    <td class="text-end"><h5 id="totalPrice" class="text-danger">0원</h5></td>
+                </tr>
+            </table>
+
+            <div class="text-center my-3">
+                <button type="button" class="btn btn-success btn-lg px-5 payment">결제하기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</html>

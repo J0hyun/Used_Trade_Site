@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+
+<!-- 사용자 스크립트 추가 -->
+<th:block layout:fragment="script">
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import {initializeApp} from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import {getAnalytics} from "https://www.gstatic.com/firebasejs/11.1.0/firebase-analytics.js";
+        import {
+            getAuth,
+            signInWithPhoneNumber,
+            RecaptchaVerifier
+        } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        // https://firebase.google.com/docs/web/setup#available-libraries
+
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+            apiKey: "AIzaSyAJMJOIAkKs1AxWwwa09ZhByQuOaxVpft0",
+            authDomain: "usedtradesite-b9784.firebaseapp.com",
+            projectId: "usedtradesite-b9784",
+            storageBucket: "usedtradesite-b9784.firebasestorage.app",
+            messagingSenderId: "1087349573118",
+            appId: "1:1087349573118:web:8b963c6bd99297265fecaf",
+            measurementId: "G-99WBLQVT44"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth();
+        auth.languageCode = 'ko';
+
+
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'phoneNumberButton', {
+            'size': 'invisible',
+            'callback': (response) => {
+                console.log('reCAPTCHA solved:', response);
+                // reCAPTCHA solved, allow signInWithPhoneNumber.
+                onSignInSubmit();
+            }
+        });
+
+        document.getElementById('phoneNumberButton').addEventListener('click', (event) => {
+            event.preventDefault()
+            const phoneNumber = document.getElementById
+            ('phoneNumber').value
+            const appVerifier = window.recaptchaVerifier;
+
+            signInWithPhoneNumber(auth, '+82' + phoneNumber, appVerifier)
+                .then((confirmationResult) => {
+                    // SMS sent. Prompt user to type the code from the message, then sign the
+                    // user in with confirmationResult.confirm(code).
+                    window.confirmationResult = confirmationResult;
+                    console.log(confirmationResult)
+                    // ...
+                }).catch((error) => {
+                console.error('Error during signInWithPhoneNumber:', error.message, error.code);
+                // Error; SMS not sent
+                // ...
+            });
+        })
+
+        document.getElementById('confirmCodeButton').addEventListener('click', (event) => {
+            event.preventDefault();
+            const code = document.getElementById('confirmCode').value;
+            confirmationResult.confirm(code).then((result) => {
+                const user = result.user;
+                const phoneNumber = (user.phoneNumber).replace('+82', '');
+
+                console.log("폰번호" + phoneNumber);
+
+                // 서버로 전화번호 보내기
+                fetch('/get-user-name', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ phone: phoneNumber })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        const userNames = data.names;
+
+                        if (userNames && userNames.length > 0) {
+                            // 사용자 이름 배열을 콤마로 연결하여 알림 표시
+                            alert('사용자 이름: ' + userNames.join(', '));
+                        } else {
+                            alert('해당 전화번호에 대한 사용자가 없습니다.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }).catch((error) => {
+                console.log(error);
+                // 인증 실패 처리
+            });
+        });
+
+
+    </script>
+</th:block>
+
+<!-- 사용자 CSS 추가 -->
+<th:block layout:fragment="css">
+    <style>
+        h2 {
+            border-bottom: none;
+        }
+
+        @media (max-width: 575px){
+            .idFind,
+            .idChoice,
+            .phoneCert {
+                padding-left: 20%;
+                padding-right: 20%;
+            }
+        }
+
+        @media (min-width: 576px) and (max-width: 991px){
+            .idFind,
+            .idChoice,
+            .phoneCert {
+                padding-left: 25%;
+                padding-right: 25%;
+            }
+        }
+
+        @media (min-width: 992px) {
+            .idFind,
+            .idChoice,
+            .phoneCert {
+                padding-left: 30%;
+                padding-right: 30%;
+            }
+        }
+    </style>
+</th:block>
+
+<div class="container mt-5" layout:fragment="content">
+
+    <div class="idFind">
+        <h2 class="pb-2 mb-3 text-center">아이디 찾기</h2>
+        <form id="idFindForm" class="row" method="post" action="/find/id">
+            <p class="mb-1">가입할때 등록한 이메일을 입력해주세요</p>
+            <div class="form-group col">
+                <input type="email" id="findEmail" name="email" class="form-control" placeholder="이메일을 입력해주세요" required>
+            </div>
+            <div class="form-group col-md-auto d-flex align-items-end">
+                <button type="submit" class="btn btn-success">아이디 찾기</button>
+            </div>
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        </form>
+
+        <!-- 오류 메시지 출력 -->
+        <p th:if="${error != null}" th:text="${error}" class="text-danger mt-3"></p>
+    </div>
+
+    <div class="idChoice mt-5">
+        <!-- 아이디 선택 후 비밀번호 찾기 -->
+        <h2 class="pb-2 mb-3 text-center" th:if="${userIds != null && !userIds.isEmpty()}">아이디 선택</h2>
+        <form id="selectIdForm" class="row form-group" method="get" action="/find/password">
+            <div class="form-group col"
+                 th:if="${userIds != null && !userIds.isEmpty()}">
+                <p class="mb-1">아이디를 선택해주세요</p>
+                <div th:each="userId : ${userIds}" class="form-check ps-0 d-flex justify-content-between">
+                    <label>
+                        <input type="radio" name="userId" th:value="${userId}">
+                        <span th:text="${userId}"></span>
+                    </label>
+                    <button type="submit" class="btn btn-warning">비밀번호 찾기</button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+
+
+    <div class="phoneCert mt-5">
+        <h2 class="pb-2 mb-3 text-center">전화번호 인증</h2>
+
+        <!-- 전화번호 입력 폼 -->
+        <form class="row mb-2">
+            <p class="mb-1">핸드폰 번호</p>
+            <div class="form-group col">
+                <input id="phoneNumber" class="form-control" placeholder="'-'없이 번호만 입력">
+            </div>
+            <div class="form-group col-md-auto d-flex align-items-end">
+                <button id="phoneNumberButton" class="btn btn-outline-primary">전화 번호 전송</button>
+            </div>
+
+        </form>
+
+        <form class="row mb-2">
+            <p class="mb-1">확인 코드</p>
+            <div class="form-group col">
+                <input id="confirmCode" class="form-control" placeholder="문자로 받은 코드 입력">
+            </div>
+            <div class="form-group col-md-auto d-flex align-items-end">
+                <button id="confirmCodeButton" class="btn btn-outline-primary">확인 코드 전송</button>
+            </div>
+
+        </form>
+
+    </div>
+
+    <p id="idFindMessage" class="text-success mt-3" style="display:none;"></p>
+    <p id="idErrorMessage" class="text-danger mt-3" style="display:none;"></p>
+</div>
+
+</html>

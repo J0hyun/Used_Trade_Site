@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+
+<!-- 사용자 CSS 추가 -->
+<th:block layout:fragment="css">
+    <link rel="stylesheet" href="/css/memberform.css">
+</th:block>
+
+<!-- 사용자 스크립트 추가 -->
+<th:block layout:fragment="script">
+    <script th:inline="javascript">
+        $(document).ready(function(){
+            var errorMessage = [[${errorMessage}]];
+            if(errorMessage != null){
+                alert(errorMessage);
+            }
+
+            // 파일 선택 시 미리보기 업데이트
+            $("#profileImg").change(function(event) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#previewImg').attr('src', e.target.result).show();
+                    $('#noImageText').hide(); // '프로필 이미지 없음' 텍스트 숨김
+                };
+                reader.readAsDataURL(this.files[0]);
+            });
+
+
+            // 탈퇴 버튼 클릭 시 확인 팝업
+            $("#deleteAccountBtn").click(function(event) {
+                if(confirm("정말로 회원을 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+                    $("#deleteAccountForm").submit();
+                }
+            });
+
+        });
+    </script>
+</th:block>
+
+<div class="container mt-5" layout:fragment="content">
+
+    <form action="/member/edit" role="form" method="post" th:object="${memberFormDto}" enctype="multipart/form-data">
+
+        <!-- 기존 프로필 이미지 미리보기 -->
+        <div class="form-group mb-3">
+            <label>현재 프로필 이미지</label>
+            <div>
+                <img th:src="${memberFormDto.viewPofile}"
+                     class="img-thumbnail"
+                     style="max-width: 150px; max-height: 150px;">
+                <span th:unless="${memberFormDto.viewPofile != null}">프로필 이미지 없음</span>
+            </div>
+        </div>
+
+        <!-- 새로운 프로필 이미지 업로드 -->
+        <div class="form-group mb-3">
+            <label th:for="profileImg">프로필 이미지</label>
+            <input type="file" id="profileImg" th:field="*{profileImg}" class="form-control" accept="image/jpeg, image/png, image/jpg">
+            <p th:if="${#fields.hasErrors('profileImg')}" th:errors="*{profileImg}" class="error">Incorrect data</p>
+        </div>
+
+        <!-- 업로드된 이미지 미리보기 -->
+        <div class="form-group mb-3">
+            <div>
+                <img id="previewImg" class="img-thumbnail" style="max-width: 150px; max-height: 150px; display: none;">
+            </div>
+        </div>
+
+        <div class="form-group mb-3">
+            <label th:for="name">아이디</label>
+            <input type="text" th:field="*{name}" class="form-control" placeholder="아이디를 입력해주세요" readonly style="background-color: #f0f0f0; cursor: not-allowed;">
+        </div>
+        <div class="form-group mb-3">
+            <label th:for="email">이메일주소</label>
+            <input type="email" th:field="*{email}" class="form-control" placeholder="이메일을 입력해주세요"
+                   th:readonly="${isOAuth2User ? 'readonly' : null}"
+                   th:style="${isOAuth2User} ? 'background-color: #f0f0f0; cursor: not-allowed;' : ''">
+            <p th:if="${#fields.hasErrors('email')}" th:errors="*{email}" class="error">Incorrect data</p>
+        </div>
+
+        <div class="form-group mb-3" th:if="${!isOAuth2User}">
+            <label th:for="password">비밀번호</label>
+            <input type="password" th:field="*{password}" class="form-control" placeholder="비밀번호 입력">
+            <p th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="error">Incorrect data</p>
+        </div>
+        <div class="form-group mb-3">
+            <label th:for="address">주소</label>
+            <input type="text" th:field="*{address}" class="form-control" placeholder="주소를 입력해주세요">
+            <p th:if="${#fields.hasErrors('address')}" th:errors="*{address}" class="error">Incorrect data</p>
+        </div>
+        <div class="form-group mb-3">
+            <label th:for="phone">전화번호</label>
+            <input type="text" th:field="*{phone}" class="form-control" placeholder="전화번호를 입력해주세요">
+            <p th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}" class="error">Incorrect data</p>
+        </div>
+        <div style="text-align: center">
+            <button type="submit" class="btn btn-success">회원정보 수정</button>
+            <!-- 회원 탈퇴 버튼 -->
+            <button type="button" id="deleteAccountBtn" class="btn btn-outline-danger" th:if="${!isOAuth2User}">회원 탈퇴</button>
+        </div>
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+    </form>
+
+    <!-- 회원 탈퇴 폼 (POST 요청) -->
+    <form id="deleteAccountForm" action="/member/delete" method="post" style="display: none;">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+    </form>
+
+</div>
+
+</html>

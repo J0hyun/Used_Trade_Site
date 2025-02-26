@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+
+<div class="container mt-5" layout:fragment="content">
+  <h2 class="pb-2 mb-4">모든 리뷰 목록</h2>
+
+  <!-- 리뷰 목록 출력 -->
+  <ul>
+    <li th:each="review : ${reviews}">
+      <div>
+        <h4 th:text="${review.memberName}">등록자명</h4>
+        <p th:text="${review.reviewDetail}">후기 내용</p>
+      </div>
+      <hr>
+    </li>
+  </ul>
+
+  <div class="text-center">
+    <a href="/" class="btn btn-success">홈으로</a>
+  </div>
+
+</div>
+
+</html>

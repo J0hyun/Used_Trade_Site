@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+
+<!-- 사용자 CSS 추가 -->
+<th:block layout:fragment="css">
+    <!-- Link Swiper's CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <link rel="stylesheet" th:href="@{/css/swiper.css}">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</th:block>
+
+<th:block layout:fragment="script">
+    <!-- Swiper JS -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <!-- Initialize Swiper -->
+    <script src="/js/swiper.js"></script>
+
+    <!-- 페이지 로드 시 메시지 출력 -->
+    <script>
+        $(document).ready(function() {
+            var successMessage = "[[${successMessage}]]";
+            console.log(successMessage);  // successMessage 값 확인
+            if(successMessage) {
+                alert(successMessage);
+            }
+
+            var errorMessage = "[[${errorMessage}]]";
+            console.log(errorMessage);  // errorMessage 값 확인
+            if(errorMessage) {
+                alert(errorMessage);
+            }
+
+            $("#searchBtn").on("click",function(e) {
+                e.preventDefault();
+                page(0);
+            });
+        });
+
+        function page(page){
+            let searchDateType = $("#searchDateType").val();
+            let searchSellStatus = $("#searchSellStatus").val();
+            let searchBy = $("#searchBy").val();
+            let searchQuery = $("#searchQuery").val();
+
+            location.href = page
+                + "?searchDateType=" + searchDateType
+                + "&searchSellStatus=" + searchSellStatus
+                + "&searchBy=" + searchBy
+                + "&searchQuery=" + searchQuery;
+        }
+    </script>
+
+</th:block>
+
+<div layout:fragment="content">
+
+    <!-- Swiper -->
+    <div class="swiper slideSwiper mb-5">
+        <div class="swiper-wrapper">
+            <div class="swiper-slide"><img src="/img/slider1.jpg" alt="slide1"></div>
+            <div class="swiper-slide"><img src="/img/slider2.jpg" alt="slide2"></div>
+            <div class="swiper-slide"><img src="/img/slider3.jpg" alt="slide3"></div>
+        </div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
+        <div class="swiper-pagination"></div>
+    </div>
+
+
+    <div class="container mb-3">
+        <form >
+            <!--                th:action="@{${items.number}}" method="get" th:object="${itemSearchDto}">-->
+            <input type="hidden" name="searchQuery" th:value="${itemSearchDto.searchQuery}">
+            <div th:if="${not #strings.isEmpty(itemSearchDto.searchQuery)}" class="center">
+                <p class="h3 font-weight-bold" th:text="${itemSearchDto.searchQuery} + ' 검색 결과'"></p>
+            </div>
+
+            <div class="row">
+                <th:block th:each="item, status: ${items.getContent()}">
+                    <div class="col-lg-3 col-sm-6 mb-3">
+                        <div class="card">
+                            <a th:href="'/item/' +${item.id}" class="text-dark">
+                                <div class="item-img" th:style="'background-image: url(' + ${item.imgUrl} + ')'">
+                                    <div class="cover" th:if="${item.itemSellStatus.name() == 'SOLD_OUT'}">
+                                        <img src="/img/sold_out.png" alt="sold_out">
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h4 class="card-title">[[${item.itemNm}]]</h4>
+                                    <p class="card-text">[[${item.itemDetail}]]</p>
+                                    <h3 class="card-title text-danger text-end"><span th:text="${#numbers.formatInteger(item.price, 3,'COMMA')}"></span>원</h3>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </th:block>
+            </div>
+
+            <div th:with="start=${((items.number / maxPage) * maxPage) + 1},
+                   end=${(items.totalPages == 0) ? 1 : (start + maxPage - 1 < items.totalPages ? start + maxPage - 1 : items.totalPages)}">
+                <ul class="pagination justify-content-center">
+
+                    <!-- Previous 그룹 이동 (시작 그룹이 아니면 표시) -->
+                    <li class="page-item" th:if="${start > 1}">
+                        <a class="page-link" th:onclick="'javascript:page(' + ${start - maxPage - 1} + ')'"
+                           aria-label="Previous">
+                            <span aria-hidden="true">Previous</span>
+                        </a>
+                    </li>
+
+                    <!-- 페이지 목록 -->
+                    <li class="page-item" th:each="page : ${#numbers.sequence(start, end)}"
+                        th:classappend="${items.number eq page - 1} ? 'active' : ''">
+                        <a class="page-link" th:onclick="'javascript:page(' + ${page - 1} + ')'" th:text="${page}"></a>
+                    </li>
+
+                    <!-- Next 그룹 이동 (마지막 그룹이 아니면 표시) -->
+                    <li class="page-item" th:if="${end < items.totalPages}">
+                        <a class="page-link" th:onclick="'javascript:page(' + ${end} + ')'" aria-label="Next">
+                            <span aria-hidden="true">Next</span>
+                        </a>
+                    </li>
+
+                </ul>
+            </div>
+
+            <div class="row pt-3" th:object="${itemSearchDto}">
+                <div class="col-lg-6">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <select th:field="*{searchDateType}" class="form-select">
+                                <option value="all">전체기간</option>
+                                <option value="1d">1일</option>
+                                <option value="1w">1주</option>
+                                <option value="1m">1개월</option>
+                                <option value="6m">6개월</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <select th:field="*{searchSellStatus}" class="form-select">
+                                <option value="">판매상태(전체)</option>
+                                <option value="SELL">판매</option>
+                                <option value="SOLD_OUT">품절</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <select th:field="*{searchBy}" class="form-select">
+                                <option value="itemNm">상품명</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="row">
+                        <div class="col-md-9 mb-3">
+                            <input th:field="*{searchQuery}" type="text" class="form-control" placeholder="검색어를 입력해주세요">
+                        </div>
+                        <div class="col-md-3 mb-3 text-center">
+                            <button id="searchBtn" type="submit" class="btn btn-success">검색</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+</div>
