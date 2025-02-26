@@ -70,7 +70,7 @@
 
 | **김원준** | **이종현** | **안정운** |
 | :------: |  :------: | :------: |
-| <img src="https://github.com/user-attachments/assets/bc978a09-9607-4132-9e84-a6692df41c9e" height=166 width=150> <br/> kWJ30 | <img src="https://github.com/user-attachments/assets/b8c1b68f-3998-4eb4-bdc9-b47893de44c1" height=166 width=150> <br/> J0hyun | <img src="https://github.com/user-attachments/assets/4ce3300c-95d9-4b0a-9827-cfe162111d7c" height=166 width=150> <br/> jungwoonAn |
+| <img src="https://github.com/user-attachments/assets/bc978a09-9607-4132-9e84-a6692df41c9e" height=166 width=150> <br/> kWJ | <img src="https://github.com/user-attachments/assets/b8c1b68f-3998-4eb4-bdc9-b47893de44c1" height=166 width=150> <br/> J0hyun | <img src="https://github.com/user-attachments/assets/4ce3300c-95d9-4b0a-9827-cfe162111d7c" height=166 width=150> <br/> jungwoon |
 | 로그인 API <br> 회원정보 등록/수정/탈퇴  <br> 아이디/비밀번호찾기 <br> | 리뷰 등록/수정/삭제  <br> 상품 등록/수정/삭제 <br> 실시간양방향 채팅 <br> (WebSocket, Stomp)  |  프론트엔드 <br> 상품등록 카테고리 ajax <br> 페이징및검색 <br> 결제,주소API |
 </div>
 
