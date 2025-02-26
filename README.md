@@ -23,7 +23,7 @@
 <div align="center">
   
 
-| **![1](https://github.com/user-attachments/assets/c917e955-89c8-4750-a0e9-5d59e3cf3464)** | **![2](https://github.com/user-attachments/assets/e11c7473-aed3-475d-b183-0a8b2ed1d7fe)** |
+| **![1](https://github.com/user-attachments/assets/d4a7992f-22cb-436c-848a-2feb06ca0aed)** | **![2](https://github.com/user-attachments/assets/e11c7473-aed3-475d-b183-0a8b2ed1d7fe)** |
 | :------: |  :------: |
 |  ![3](https://github.com/user-attachments/assets/9baaa170-c8d0-48f0-a8e7-62e532036a16) | ![4](https://github.com/user-attachments/assets/3b91da9e-dba0-4231-a497-8c2a06e6991b) |
 | ![5](https://github.com/user-attachments/assets/667fdf1d-e8c1-4897-90bb-9230f0b18148) | ![6](https://github.com/user-attachments/assets/8b49ddda-2862-4312-806f-5f70c94c755f)  |
